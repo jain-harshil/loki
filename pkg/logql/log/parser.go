@@ -94,7 +94,7 @@ func (j *JSONParser) parseMap(prefix string) func(iter *jsoniter.Iterator, field
 func (j *JSONParser) nextKeyPrefix(prefix, field string) (string, bool) {
 	// first time we add return the field as prefix.
 	if len(prefix) == 0 {
-		field = sanitizeLabelKey(field, true)
+		field = sanitizeLabelKey(field, true, false)
 		if j.lbs.ParserLabelHints().ShouldExtractPrefix(field) {
 			return field, true
 		}
@@ -104,7 +104,7 @@ func (j *JSONParser) nextKeyPrefix(prefix, field string) (string, bool) {
 	j.buf = j.buf[:0]
 	j.buf = append(j.buf, prefix...)
 	j.buf = append(j.buf, byte(jsonSpacer))
-	j.buf = append(j.buf, sanitizeLabelKey(field, false)...)
+	j.buf = append(j.buf, sanitizeLabelKey(field, false, false)...)
 	// if matches keep going
 	if j.lbs.ParserLabelHints().ShouldExtractPrefix(string(j.buf)) {
 		return string(j.buf), true
@@ -115,7 +115,7 @@ func (j *JSONParser) nextKeyPrefix(prefix, field string) (string, bool) {
 func (j *JSONParser) parseLabelValue(iter *jsoniter.Iterator, prefix, field string) {
 	// the first time we use the field as label key.
 	if len(prefix) == 0 {
-		field = sanitizeLabelKey(field, true)
+		field = sanitizeLabelKey(field, true, false)
 		if !j.lbs.ParserLabelHints().ShouldExtract(field) {
 			// we can skip the value
 			iter.Skip()
@@ -133,7 +133,7 @@ func (j *JSONParser) parseLabelValue(iter *jsoniter.Iterator, prefix, field stri
 	j.buf = j.buf[:0]
 	j.buf = append(j.buf, prefix...)
 	j.buf = append(j.buf, byte(jsonSpacer))
-	j.buf = append(j.buf, sanitizeLabelKey(field, false)...)
+	j.buf = append(j.buf, sanitizeLabelKey(field, false, false)...)
 	if j.lbs.BaseHas(string(j.buf)) {
 		j.buf = append(j.buf, duplicateSuffix...)
 	}
@@ -164,8 +164,9 @@ func readValue(iter *jsoniter.Iterator) string {
 }
 
 func addLabel(lbs *LabelsBuilder, key, value string) {
-	key = sanitizeLabelKey(key, true)
-	if len(key) == 0 {
+	key = sanitizeLabelKey(key, true, false)
+	value = sanitizeLabelKey(value, false, true)
+	if (len(key) == 0 || len(value) == 0) {
 		return
 	}
 	if lbs.BaseHas(key) {
@@ -249,7 +250,7 @@ func (l *LogfmtParser) Process(line []byte, lbs *LabelsBuilder) ([]byte, bool) {
 	}
 	l.dec.Reset(line)
 	for l.dec.ScanKeyval() {
-		if !lbs.ParserLabelHints().ShouldExtract(sanitizeLabelKey(string(l.dec.Key()), true)) {
+		if !lbs.ParserLabelHints().ShouldExtract(sanitizeLabelKey(string(l.dec.Key()), true, false)) {
 			continue
 		}
 		key := string(l.dec.Key())
