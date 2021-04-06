@@ -56,7 +56,7 @@ key:
 	start, multibyte := dec.pos, false
 	for p, c := range line[dec.pos:] {
 		switch {
-		case c == '=':
+		case c == '=' || c == ':':
 			dec.pos += p
 			if dec.pos > start {
 				dec.key = line[start:dec.pos]
@@ -76,26 +76,12 @@ key:
 			return false
 		case c <= ' ':
 			dec.pos += p
-			if dec.pos > start {
-				dec.key = line[start:dec.pos]
-				if multibyte && bytes.ContainsRune(dec.key, utf8.RuneError) {
-					dec.syntaxError(invalidKeyError)
-					return false
-				}
-			}
 			return true
 		case c >= utf8.RuneSelf:
 			multibyte = true
 		}
 	}
 	dec.pos = len(line)
-	if dec.pos > start {
-		dec.key = line[start:dec.pos]
-		if multibyte && bytes.ContainsRune(dec.key, utf8.RuneError) {
-			dec.syntaxError(invalidKeyError)
-			return false
-		}
-	}
 	return true
 
 equal:
@@ -104,8 +90,10 @@ equal:
 		return true
 	}
 	switch c := line[dec.pos]; {
-	case c <= ' ':
+	case c < ' ':
 		return true
+	case c == ' ':
+		dec.pos++
 	case c == '"':
 		goto qvalue
 	}
